@@ -1,4 +1,4 @@
-/* Meteorological Temp, Umid and Pressure Unit
+/* Meteorological Temp, humid and Pressure Unit
 *Created by Filipe Brandao Using
 *Sparkfun GY-BME280 Library
 *SMS0408E2 Library
