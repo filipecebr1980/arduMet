@@ -1,4 +1,4 @@
-/* Meteorological Temp, humid and Pressure Unit
+/* Meteorological Temp, Umid and Pressure Unit
 *Created by Filipe Brandao Using
 *Sparkfun GY-BME280 Library
 *SMS0408E2 Library
@@ -151,5 +151,5 @@ void testLcd(){
 }
 
 void sendSerial(){
-  Serial.println((String)mySensor.readTempC()+";" + (String)mySensor.readFloatHumidity()+ ";" + (String)mySensor.readFloatPressure());
+  Serial.println((String)mySensor.readTempC()+" " + (String)mySensor.readFloatHumidity()+ " " + (String)mySensor.readFloatPressure());
 }
