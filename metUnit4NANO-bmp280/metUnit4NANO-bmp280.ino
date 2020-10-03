@@ -187,23 +187,18 @@ float airDensity(){
 
   //reads temp in C°
   t=(double)mySensor.readTempC();
-  Serial.println(t);
   
   //read pressure in Pa
   p=(double)mySensor.readFloatPressure();
-  Serial.println(p);
   
   //reads rel humidity
   rh=(double)mySensor.readFloatHumidity();
-  Serial.println(rh);
   
   //calculates the saturation vapor pressure, temperature converted to Kelvin
   p1=6.1078*pow(10,7.5*t/(t+237.3));
-  Serial.println(p1);
-  
+
   //actual vapor pressure in function of relative humidity and temperature
   pv=p1*rh;
-  Serial.println(pv);
   
   //actual dry air pressure
   pd=p-pv;
@@ -219,5 +214,5 @@ float airDensity(){
 
 void sendSerial(){
   Serial.print((String)mySensor.readTempC()+" " + (String)mySensor.readFloatHumidity()+ " " + (String)mySensor.readFloatPressure()+" ");
-  Serial.println(airDensity());
+  Serial.println(airDensity(),3);
 }
