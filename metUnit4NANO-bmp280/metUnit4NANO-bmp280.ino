@@ -9,6 +9,7 @@
    The GY-BME280 is using address 0x76 (jumper closed)
 
   Hardware connections:
+  
   BME280 -> Arduino
   GND -> GND
   3.3 -> 3.3
@@ -17,14 +18,24 @@
 
   SUNMAN SMS0408E2
   LCD   -> Arduino
-  VDD   -> 12
-  DI    -> 11
-  VSS   -> 10
-  CLK   -> 9
+  VDD   -> 6
+  DI    -> 5
+  VSS   -> 4
+  CLK   -> 3
+  BLA   -> 2
+  BLK   -> GND or 7
+
+  DS3231 RTC
+  RTC    Arduino
+  SCL -> A5
+  SDA -> A4
+  VCC -> 5V
+  GND -> GND 
   
  REQUIRES the following Arduino libraries:
  - https://github.com/sparkfun/SparkFun_BME280_Arduino_Library
  - Adafruit Unified Sensor Lib: https://github.com/adafruit/Adafruit_Sensor
+ - Real time clock DS3231: https://github.com/jarzebski/Arduino-DS3231
  - SUNMAN SMS0408E2 LDC 7 Segments display: https://github.com/filipecebr1980/Sunman-SMS0408E2
 */
 
@@ -32,14 +43,16 @@
 #include <Sms0408.h>
 #include <Wire.h>
 #include "SparkFunBME280.h"
+#include <DS3231.h>
 
-uint32_t delayMS=2000;
 
-int VDD_PIN=12;
-int DI_PIN=11;
-int VSS_PIN=10;
-int CLK_PIN=9;
-int BLA_PIN=8;
+uint32_t delayMS=1000;
+
+int VDD_PIN=6;
+int DI_PIN=5;
+int VSS_PIN=4;
+int CLK_PIN=3;
+int BLA_PIN=2;
 int BLK_PIN=7;
 
 //create an LCD object
@@ -47,6 +60,11 @@ Sms0408 myLCD(DI_PIN,CLK_PIN,BLK_PIN);
 
 //create sensor object
 BME280 mySensor;
+
+//inicialice clock and create RTC object:
+DS3231 clock;
+RTCDateTime rtc;
+
 
 void setup() {
   
@@ -81,6 +99,18 @@ void setup() {
   //tests lcd (all segments ON for 1 second
   testLcd();
   delay(delayMS);
+
+  // Initialize DS3231 RTC
+  Serial.println("Initialize DS3231");;
+  clock.begin();
+
+  /* Sync RTC with your computer DATE/TIME
+  only necessary in the first time you compile this sketch if you want
+  to with your PC date/time. Comment the intruction and compile for a second time
+  to keep your RTC running, otherwise it will keep the compiling date/time as starting
+  point at every initialization of the device!
+  */
+  //clock.setDateTime(__DATE__, __TIME__);
 }
 
 void loop() {
@@ -213,6 +243,8 @@ float airDensity(){
 }
 
 void sendSerial(){
-  Serial.print((String)mySensor.readTempC()+" " + (String)mySensor.readFloatHumidity()+ " " + (String)mySensor.readFloatPressure()+" ");
+  rtc = clock.getDateTime();
+  Serial.print(clock.dateFormat("d-m-Y H:i:s", rtc));
+  Serial.print(" "+(String)mySensor.readTempC()+" " + (String)mySensor.readFloatHumidity()+ " " + (String)mySensor.readFloatPressure()+" ");
   Serial.println(airDensity(),3);
 }
