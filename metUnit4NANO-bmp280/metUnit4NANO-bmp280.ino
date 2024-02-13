@@ -1,9 +1,12 @@
 /* Meteorological Unit - Temp, Umid and Pressure and Air Density
- *  V 1.2.0 - Air density enabled
+ * 
+ *  V 1.3.0 - Itegrated Real Time clock and SD Card slot for data logging.
 
 *Created by Filipe Brandao Using
 *Sparkfun GY-BME280 Library
 *SMS0408E2 Library
+*DS3231 RTC Library
+*SD Arduino Library
 *Using examples from Adafruit and Sparkfun Libraries.
 *
    The GY-BME280 is using address 0x76 (jumper closed)
@@ -31,11 +34,22 @@
   SDA -> A4
   VCC -> 5V
   GND -> GND 
+
+ SD Card reader
+ PCB    Arduino
+ CS   -> D10
+ SCK  -> D13
+ MOSI -> D11
+ MISO -> D12
+ VCC  -> 5V
+ GND  -> GND
+
   
  REQUIRES the following Arduino libraries:
  - https://github.com/sparkfun/SparkFun_BME280_Arduino_Library
  - Adafruit Unified Sensor Lib: https://github.com/adafruit/Adafruit_Sensor
  - Real time clock DS3231: https://github.com/jarzebski/Arduino-DS3231
+ - SD Card Reader: https://github.com/arduino-libraries/SD
  - SUNMAN SMS0408E2 LDC 7 Segments display: https://github.com/filipecebr1980/Sunman-SMS0408E2
 */
 
@@ -44,8 +58,13 @@
 #include <Wire.h>
 #include "SparkFunBME280.h"
 #include <DS3231.h>
+#include <SPI.h>
+#include <SD.h>
 
+//used to select chipset for type of SD reader. Adafruit=10
+const int chipSelect = 10;
 
+//delay for serial print, update display and write output file
 uint32_t delayMS=1000;
 
 int VDD_PIN=6;
@@ -64,6 +83,7 @@ BME280 mySensor;
 //inicialice clock and create RTC object:
 DS3231 clock;
 RTCDateTime rtc;
+
 
 
 void setup() {
@@ -101,7 +121,7 @@ void setup() {
   delay(delayMS);
 
   // Initialize DS3231 RTC
-  Serial.println("Initialize DS3231");;
+  Serial.println("Initialize Real Time Clock DS3231");;
   clock.begin();
 
   /* Sync RTC with your computer DATE/TIME
@@ -111,30 +131,48 @@ void setup() {
   point at every initialization of the device!
   */
   //clock.setDateTime(__DATE__, __TIME__);
+
+  //Card reader setup
+  if (!SD.begin(chipSelect)) {
+    Serial.println("SD Card failed, or not present");
+    // don't do anything more:
+    while (1);
+  }
+  Serial.println("SD Card initialized sucessfully.");
+
+  //write header for data stored:
+  File dataFile = SD.open("data.txt", FILE_WRITE);
+  dataFile.println("Date Time Temp RelHumid Pressure Density");
+  dataFile.close();
+  Serial.println("Date Time Temp RelHumid Pressure Density");  
 }
 
 void loop() {
-  //shows temperature in C°
-    
+
+  //shows temperature in C°    
   //displayTemp(-10.0);
   displayTemp(mySensor.readTempC());
   delay(delayMS);
   sendSerial();
+  sdWrite();
  
   //shows humidity in %
   displayHumid(mySensor.readFloatHumidity());
   delay(delayMS);
   sendSerial();
+  sdWrite();
   
   //shows pressure in hPa (millibar)
   displayPressure(mySensor.readFloatPressure()/100.0);
   delay(delayMS);
   sendSerial();
+  sdWrite();
 
    //shows air density in kg/m³
   displayPressure(airDensity());
   delay(delayMS);
   sendSerial();
+  sdWrite();
 
 }
 
@@ -242,9 +280,42 @@ float airDensity(){
   return (float)density;
 }
 
+//Sends measurements to USB Serial
 void sendSerial(){
-  rtc = clock.getDateTime();
-  Serial.print(clock.dateFormat("d-m-Y H:i:s", rtc));
-  Serial.print(" "+(String)mySensor.readTempC()+" " + (String)mySensor.readFloatHumidity()+ " " + (String)mySensor.readFloatPressure()+" ");
+
+  Serial.print(timeStamp());
+  Serial.print(" ");
+  Serial.print(mySensor.readTempC());
+  Serial.print(" ");
+  Serial.print(mySensor.readFloatHumidity());
+  Serial.print(" ");
+  Serial.print(mySensor.readFloatPressure());
+  Serial.print(" ");
   Serial.println(airDensity(),3);
+}
+
+//Records data in SD Card
+void sdWrite(){
+    File dataFile = SD.open("data.txt", FILE_WRITE);
+    if (dataFile) {
+    dataFile.print(timeStamp());
+    dataFile.print(" ");
+    dataFile.print(mySensor.readTempC());
+    dataFile.print(" ");
+    dataFile.print(mySensor.readFloatHumidity());
+    dataFile.print(" ");
+    dataFile.print(mySensor.readFloatPressure());
+    dataFile.print(" ");
+    dataFile.println(airDensity(),3);
+    dataFile.close();
+    }
+    else{
+    Serial.println("error opening datalog.txt");
+    }
+}
+
+//Gets timestamps from RTC real time clock
+String timeStamp(){
+  rtc=clock.getDateTime();
+  return (String)rtc.year+"-"+ (String)rtc.month+"-"+ (String)rtc.day+" "+ (String)rtc.hour + ":" + (String)rtc.minute + ":" + (String)rtc.second;
 }
