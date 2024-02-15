@@ -1,4 +1,4 @@
-/* Meteorological Unit - Temp, Umid and Pressure and Air Density
+/* Meteorological Unit - Temp, relative umidity, pressure and air density
  * 
  *  V 1.3.0 - Itegrated Real Time clock and SD Card slot for data logging.
 
