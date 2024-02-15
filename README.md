@@ -4,12 +4,15 @@ Repository with source code of Arduino based cardboard meteorological unit.
 
 This device reads air temperature, relative humidity and pressure using a GY-BME-280 integrated sensor.
 
-This prototype estimates the air density using the Clayperon equation rewritten to calculate the air density of moist air.
+This prototype estimates the air density using the Clayperon's equation rewritten to calculate the air density of moist air.
 
-It shows the measurements in a sequencial loop in simple 4 digits 7 segments LCD and also sends the measurements via USB serial interface.
+It shows the measurements in a sequencial loop on the simple 4 digits 7 segments LCD and also sends the measurements via USB serial interface.
 The measurements' sequence in the simple 4 digits LCD is: temperature, % humidity, pressure, density. 
 
-All data is stored in a pre formatted (FAT32) SD card in a tructured text file (data.txt) that can be easily imported in Excel, for instance. 
+All data is stored in a pre-formatted (FAT32) SD card in a tructured text file (data.txt) that can be easily imported by Excel, for instance.
+Please follow these guidelines regarding connection and formating the SD card:
+https://lastminuteengineers.com/arduino-micro-sd-card-module-tutorial/
+
 
 The necessary libraries for this project are included in the repository (zip files) but updated versions can be dowloaded freely:
  - https://github.com/sparkfun/SparkFun_BME280_Arduino_Library
@@ -21,7 +24,7 @@ The necessary libraries for this project are included in the repository (zip fil
 
 Feel Free to use as you please.
 
-By Filipe Brandao
+Maintained by Filipe Brandao (filipecebr@gmail.com).
 
 RELEASE NOTES:
 
