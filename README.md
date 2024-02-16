@@ -24,7 +24,7 @@ The necessary libraries for this project are included in the repository (zip fil
 
 Feel Free to use as you please.
 
-Maintained by Filipe Brandao (filipecebr@gmail.com).
+Maintained by Filipe Brandao (budegarower@gmail.com).
 
 RELEASE NOTES:
 
