@@ -24,11 +24,11 @@ The necessary libraries for this project are included in the repository (zip fil
 
 Feel Free to use as you please.
 
-Maintained by Filipe Brandao (filipecebr@gmail.com).
+Maintained by Filipe Brandao (budegarower@gmail.com).
 
 RELEASE NOTES:
 
-v1.3.0 - Incorporated DS3231 RTC (real time clock) to include a timestamp for dataloging. Incorparated SD Card reader for data storage.
+v1.3.0 - Incorporated DS3231 RTC (real time clock) to include a timestamp for datalogging. Incorparated SD Card reader for data storage.
 New schematic includes the hardware modifications to include the two new devices and the the possibility of optional use of the SMS0408E2 7 segments LCD.
 The datalog can work without the LCD, the slot for the LCD connection can be left open. Data is stored in a SD card and measurements can be seen via USB serial connection.
 
