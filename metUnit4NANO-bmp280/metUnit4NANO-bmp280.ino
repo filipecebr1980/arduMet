@@ -1,14 +1,18 @@
-/* Meteorological Unit - Temp, Umid and Pressure and Air Density
- *  V 1.2.0 - Air density enabled
+/* Meteorological Unit - Temp, relative umidity, pressure and air density
+ * 
+ *  V 1.3.0 - Itegrated Real Time clock and SD Card slot for data logging.
 
 *Created by Filipe Brandao Using
 *Sparkfun GY-BME280 Library
 *SMS0408E2 Library
+*DS3231 RTC Library
+*SD Arduino Library
 *Using examples from Adafruit and Sparkfun Libraries.
 *
    The GY-BME280 is using address 0x76 (jumper closed)
 
   Hardware connections:
+  
   BME280 -> Arduino
   GND -> GND
   3.3 -> 3.3
@@ -17,14 +21,35 @@
 
   SUNMAN SMS0408E2
   LCD   -> Arduino
-  VDD   -> 12
-  DI    -> 11
-  VSS   -> 10
-  CLK   -> 9
+  VDD   -> 6
+  DI    -> 5
+  VSS   -> 4
+  CLK   -> 3
+  BLA   -> 2
+  BLK   -> GND or 7
+
+  DS3231 RTC
+  RTC    Arduino
+  SCL -> A5
+  SDA -> A4
+  VCC -> 5V
+  GND -> GND 
+
+ SD Card reader
+ PCB    Arduino
+ CS   -> D10
+ SCK  -> D13
+ MOSI -> D11
+ MISO -> D12
+ VCC  -> 5V
+ GND  -> GND
+
   
  REQUIRES the following Arduino libraries:
  - https://github.com/sparkfun/SparkFun_BME280_Arduino_Library
  - Adafruit Unified Sensor Lib: https://github.com/adafruit/Adafruit_Sensor
+ - Real time clock DS3231: https://github.com/jarzebski/Arduino-DS3231
+ - SD Card Reader: https://github.com/arduino-libraries/SD
  - SUNMAN SMS0408E2 LDC 7 Segments display: https://github.com/filipecebr1980/Sunman-SMS0408E2
 */
 
@@ -32,21 +57,32 @@
 #include <Sms0408.h>
 #include <Wire.h>
 #include "SparkFunBME280.h"
+#include <DS3231.h>
+#include <SPI.h>
+#include <SD.h>
 
-uint32_t delayMS=2000;
+//used to select chipset for type of SD reader. Adafruit=10
+const int chipSelect = 10;
 
-int VDD_PIN=12;
-int DI_PIN=11;
-int VSS_PIN=10;
-int CLK_PIN=9;
-int BLA_PIN=8;
-int BLK_PIN=7;
+//delay for serial print, update display and write output file
+uint32_t delayMS=1000;
+
+const int VDD_PIN=6;
+const int DI_PIN=5;
+const int VSS_PIN=4;
+const int CLK_PIN=3;
+const int BLA_PIN=2;
+const int BLK_PIN=7;
 
 //create an LCD object
 Sms0408 myLCD(DI_PIN,CLK_PIN,BLK_PIN);
 
 //create sensor object
 BME280 mySensor;
+
+//inicialice clock and create RTC object:
+DS3231 clock;
+RTCDateTime rtc;
 
 void setup() {
   
@@ -81,30 +117,59 @@ void setup() {
   //tests lcd (all segments ON for 1 second
   testLcd();
   delay(delayMS);
+
+  // Initialize DS3231 RTC
+  Serial.println("Initialize Real Time Clock DS3231");;
+  clock.begin();
+
+  
+  // Set sketch compiling time - please comment after first clock sync
+  //and recompile/upload to Arduino. otherwise, clock will be always reset
+  //to the sketch compiling date/time
+  
+  //clock.setDateTime(__DATE__, __TIME__);
+
+  //Card reader setup
+  if (!SD.begin(chipSelect)) {
+    Serial.println("SD Card failed, or not present");
+    // don't do anything more:
+    while (1);
+  }
+  Serial.println("SD Card initialized sucessfully.");
+
+  //write header for data stored:
+  File dataFile = SD.open("data.txt", FILE_WRITE);
+  dataFile.println("Date Time Temp RelHumid Pressure Density");
+  dataFile.close();
+  Serial.println("Date Time Temp RelHumid Pressure Density");  
 }
 
 void loop() {
-  //shows temperature in C°
-    
+
+  //shows temperature in C°    
   //displayTemp(-10.0);
   displayTemp(mySensor.readTempC());
   delay(delayMS);
   sendSerial();
+  sdWrite();
  
   //shows humidity in %
   displayHumid(mySensor.readFloatHumidity());
   delay(delayMS);
   sendSerial();
+  sdWrite();
   
   //shows pressure in hPa (millibar)
   displayPressure(mySensor.readFloatPressure()/100.0);
   delay(delayMS);
   sendSerial();
+  sdWrite();
 
    //shows air density in kg/m³
   displayPressure(airDensity());
   delay(delayMS);
   sendSerial();
+  sdWrite();
 
 }
 
@@ -212,7 +277,42 @@ float airDensity(){
   return (float)density;
 }
 
+//Sends measurements to USB Serial
 void sendSerial(){
-  Serial.print((String)mySensor.readTempC()+" " + (String)mySensor.readFloatHumidity()+ " " + (String)mySensor.readFloatPressure()+" ");
+
+  Serial.print(timeStamp());
+  Serial.print(" ");
+  Serial.print(mySensor.readTempC());
+  Serial.print(" ");
+  Serial.print(mySensor.readFloatHumidity());
+  Serial.print(" ");
+  Serial.print(mySensor.readFloatPressure());
+  Serial.print(" ");
   Serial.println(airDensity(),3);
+}
+
+//Records data in SD Card
+void sdWrite(){
+    File dataFile = SD.open("data.txt", FILE_WRITE);
+    if (dataFile) {
+    dataFile.print(timeStamp());
+    dataFile.print(" ");
+    dataFile.print(mySensor.readTempC());
+    dataFile.print(" ");
+    dataFile.print(mySensor.readFloatHumidity());
+    dataFile.print(" ");
+    dataFile.print(mySensor.readFloatPressure());
+    dataFile.print(" ");
+    dataFile.println(airDensity(),3);
+    dataFile.close();
+    }
+    else{
+    Serial.println("Error opening data.txt");
+    }
+}
+
+//Gets timestamps from RTC real time clock
+String timeStamp(){
+  rtc=clock.getDateTime();
+  return (String)rtc.year+"-"+ (String)rtc.month+"-"+ (String)rtc.day+" "+ (String)rtc.hour + ":" + (String)rtc.minute + ":" + (String)rtc.second;
 }
