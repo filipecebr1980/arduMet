@@ -1,6 +1,7 @@
 /* Meteorological Unit - Temp, relative umidity, pressure and air density
  * 
- *  V 1.3.0 - Itegrated Real Time clock and SD Card slot for data logging.
+ *  V 1.3.1 - Itegrated Real Time clock and SD Card slot for data logging.
+ *  Fixed 1s sampling time based on RTC clock for precise tame stamping.
 
 *Created by Filipe Brandao Using
 *Sparkfun GY-BME280 Library
@@ -146,31 +147,47 @@ void setup() {
 
 void loop() {
 
-  //shows temperature in C°    
-  //displayTemp(-10.0);
-  displayTemp(mySensor.readTempC());
-  delay(delayMS);
-  sendSerial();
-  sdWrite();
- 
-  //shows humidity in %
-  displayHumid(mySensor.readFloatHumidity());
-  delay(delayMS);
-  sendSerial();
-  sdWrite();
-  
-  //shows pressure in hPa (millibar)
-  displayPressure(mySensor.readFloatPressure()/100.0);
-  delay(delayMS);
-  sendSerial();
-  sdWrite();
+  //created a way to alternate display measurent and record timestamp
+  //in the SD card every second only if 
+  int counter=0;
+  int second=clock.getDateTime().second;
 
-   //shows air density in kg/m³
-  displayPressure(airDensity());
-  delay(delayMS);
-  sendSerial();
-  sdWrite();
+while (counter < 8){
+  if (second !=clock.getDateTime().second){
+    sendSerial();
+    sdWrite();
+    refreshLCD(counter);    
+    counter++;
+    second=clock.getDateTime().second;
+    }   
+  }
+}
 
+void refreshLCD(int option){
+
+  switch(option){
+
+    case 0:
+    //shows temperature in C°    
+    displayTemp(mySensor.readTempC());
+    break;
+    
+    case 2:
+    //shows humidity in %
+    displayHumid(mySensor.readFloatHumidity());
+    break;
+    
+    case 4:
+    //shows pressure in hPa (millibar)
+    displayPressure(mySensor.readFloatPressure()/100.0);
+    break;
+    
+    case 6:
+    //shows air density in kg/m³
+    displayPressure(airDensity());
+    break;
+    }
+    
 }
 
 void displayTemp(float temp){
