@@ -184,7 +184,7 @@ void refreshLCD(int option){
     
     case 6:
     //shows air density in kg/m³
-    displayPressure(airDensity());
+    displayAirDensity();
     break;
     }
     
