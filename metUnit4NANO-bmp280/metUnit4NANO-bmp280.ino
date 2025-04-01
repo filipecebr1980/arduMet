@@ -1,6 +1,6 @@
-/* Meteorological Unit - Temp, relative umidity, pressure and air density
+/* Meteorological Unit - Temp, relative humidity, pressure and air density
  * 
- *  V 1.3.1 - Itegrated Real Time clock and SD Card slot for data logging.
+ *  V 1.3.1 - Integrated Real Time clock and SD Card slot for data logging.
  *  Fixed 1s sampling time based on RTC clock for precise tame stamping.
 
 *Created by Filipe Brandao Using
@@ -81,7 +81,7 @@ Sms0408 myLCD(DI_PIN,CLK_PIN,BLK_PIN);
 //create sensor object
 BME280 mySensor;
 
-//inicialice clock and create RTC object:
+//initialize clock and create RTC object:
 DS3231 clock;
 RTCDateTime rtc;
 
@@ -102,18 +102,18 @@ void setup() {
   digitalWrite(BLK_PIN, LOW);
   
   Serial.begin(9600);
-  Serial.println("System started");
+  Serial.println("System started.");
   
   Wire.begin();
   mySensor.setI2CAddress(0x76); //Connect to sensor
   if(mySensor.beginI2C() == false) {
-      Serial.println("Sensor B connect failed!");
+      Serial.println("Sensor B connection failed!");
       myLCD.displayError();
       myLCD.adjust();
       while(1){}
     }
 
-  Serial.println("Sensor conection OK!");
+  Serial.println("Sensor connection OK!");
 
   //tests lcd (all segments ON for 1 second
   testLcd();
@@ -136,7 +136,7 @@ void setup() {
     // don't do anything more:
     while (1);
   }
-  Serial.println("SD Card initialized sucessfully.");
+  Serial.println("SD Card initialized successfully.");
 
   //write header for data stored:
   File dataFile = SD.open("data.txt", FILE_WRITE);
@@ -147,8 +147,8 @@ void setup() {
 
 void loop() {
 
-  //created a way to alternate display measurent and record timestamp
-  //in the SD card every second only if 
+  //created a way to alternate display values and record timestamp
+  //in the SD card every second. refresh LCD in the even seconds.
   int counter=0;
   int second=clock.getDateTime().second;
 
@@ -253,10 +253,10 @@ void testLcd(){
   myLCD.clearLCD();
 }
 
-  /*This funcion calculates air density as funcion of Temp, Press and Rel.Humidity
+  /*This function calculates air density as function of Temp, Press. and Rel.Humidity
    * Uses the methodology of defining dry air pressure and water vapor pressure
    * as well as using the universal constants for ideal gases for both water vapor and dry air.
-   * For more detail about this calculation, visit: https://www.omnicalculator.com/physics/air-density
+   * For more details about this calculation, visit: https://www.omnicalculator.com/physics/air-density
    */
 float airDensity(){   
   double t,p,rh,p1,pv,pd,Rd,Rv,density;
@@ -279,13 +279,13 @@ float airDensity(){
   //calculates the saturation vapor pressure, temperature converted to Kelvin
   p1=6.1078*pow(10,7.5*t/(t+237.3));
 
-  //actual vapor pressure in function of relative humidity and temperature
+  //actual vapor pressure as function of relative humidity and temperature
   pv=p1*rh;
   
   //actual dry air pressure
   pd=p-pv;
     
-  //temperatute in kelvin:
+  //temperature in kelvin:
   t=t+273.15;
     
   //calculates air density:
