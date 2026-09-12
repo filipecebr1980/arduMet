@@ -1,11 +1,12 @@
 /* Meteorological Unit - Temp, relative humidity, pressure and air density
  * 
- *  V 1.3.1 - Integrated Real Time clock and SD Card slot for data logging.
+ * V 1.4.0 - replaced 7 segments LCD by I2C 16 char x 2 lines (1602A I2C) LCD.
+ * V 1.3.1 - Integrated Real Time clock and SD Card slot for data logging.
  *  Fixed 1s sampling time based on RTC clock for precise tame stamping.
 
 *Created by Filipe Brandao Using
 *Sparkfun GY-BME280 Library
-*SMS0408E2 Library
+*LiquidCrystal_I2C
 *DS3231 RTC Library
 *SD Arduino Library
 *Using examples from Adafruit and Sparkfun Libraries.
@@ -20,14 +21,12 @@
   SDA -> A4
   SCL -> A5
 
-  SUNMAN SMS0408E2
+  LCD 1602A I2C
   LCD   -> Arduino
-  VDD   -> 6
-  DI    -> 5
-  VSS   -> 4
-  CLK   -> 3
-  BLA   -> 2
-  BLK   -> GND or 7
+  VCC   -> VCC
+  GND   -> GND
+  SDA   -> A4
+  SCK   -> A5
 
   DS3231 RTC
   RTC    Arduino
@@ -51,11 +50,11 @@
  - Adafruit Unified Sensor Lib: https://github.com/adafruit/Adafruit_Sensor
  - Real time clock DS3231: https://github.com/jarzebski/Arduino-DS3231
  - SD Card Reader: https://github.com/arduino-libraries/SD
- - SUNMAN SMS0408E2 LDC 7 Segments display: https://github.com/filipecebr1980/Sunman-SMS0408E2
+ - LCD 1602A: https://github.com/Freenove/Freenove_LCD1602_Starter_Kit/archive/master.zip
 */
 
 #include <Adafruit_Sensor.h>
-#include <Sms0408.h>
+#include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 #include "SparkFunBME280.h"
 #include <DS3231.h>
@@ -68,17 +67,10 @@ const int chipSelect = 10;
 //delay for serial print, update display and write output file
 uint32_t delayMS=1000;
 
-const int VDD_PIN=6;
-const int DI_PIN=5;
-const int VSS_PIN=4;
-const int CLK_PIN=3;
-const int BLA_PIN=2;
-const int BLK_PIN=7;
+//create an LCD object -  using address 0x27
+LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
-//create an LCD object
-Sms0408 myLCD(DI_PIN,CLK_PIN,BLK_PIN);
-
-//create sensor object
+//create sensor object (BOSH BME 280 combined sensor)
 BME280 mySensor;
 
 //initialize clock and create RTC object:
@@ -87,19 +79,12 @@ RTCDateTime rtc;
 
 void setup() {
   
-  //Configure Pins as OUTPUT
-  pinMode(VSS_PIN,OUTPUT);
-  pinMode(VDD_PIN,OUTPUT);
-  pinMode(CLK_PIN,OUTPUT);
-  pinMode(DI_PIN,OUTPUT);
-  pinMode(BLA_PIN,OUTPUT);
-  pinMode(BLK_PIN,OUTPUT);
+  lcd.init();
+  lcd.backlight();
 
-  //powers up SUNMAN SMS0408
-  digitalWrite(VDD_PIN, HIGH); 
-  digitalWrite(VSS_PIN, LOW);
-  digitalWrite(BLA_PIN, HIGH);
-  digitalWrite(BLK_PIN, LOW);
+  //test lcd with initial message
+  testLcd();
+  delay(delayMS);
   
   Serial.begin(9600);
   Serial.println("System started.");
@@ -107,43 +92,57 @@ void setup() {
   Wire.begin();
   mySensor.setI2CAddress(0x76); //Connect to sensor
   if(mySensor.beginI2C() == false) {
-      Serial.println("Sensor B connection failed!");
-      myLCD.displayError();
-      myLCD.adjust();
+      Serial.println("Sensor connection failed!");
+      lcd.setCursor(0, 0);
+      lcd.print("Sensor connection");
+      lcd.setCursor(0, 1);
+      lcd.print("connection FAIL");
+      delay(1000);
+      //Display an error message on the LCD too
       while(1){}
     }
 
   Serial.println("Sensor connection OK!");
-
-  //tests lcd (all segments ON for 1 second
-  testLcd();
-  delay(delayMS);
-
+      lcd.setCursor(0, 0);
+      lcd.print("Sensor");
+      lcd.setCursor(0, 1);
+      lcd.print("connection OK");
+      delay(2000);
   // Initialize DS3231 RTC
-  Serial.println("Initialize Real Time Clock DS3231");;
+  Serial.println("Initialize Real Time Clock DS3231");
   clock.begin();
 
   
-  // Set sketch compiling time - please comment after first clock sync
-  //and recompile/upload to Arduino. otherwise, clock will be always reset
-  //to the sketch compiling date/time
+  // Set sketch compiling time - please uncomment before first clock sync and recompile/upload
+  //to Arduino. Afterwards, do comment. Otherwise, clock will be always reset
+  //to the sketch compiling date/time.
   
   //clock.setDateTime(__DATE__, __TIME__);
 
   //Card reader setup
   if (!SD.begin(chipSelect)) {
     Serial.println("SD Card failed, or not present");
+    lcd.setCursor(0, 0);
+    lcd.print("SD Card failed");
+    lcd.setCursor(0, 1);
+    lcd.print("or not present");
     // don't do anything more:
     while (1);
   }
-  Serial.println("SD Card initialized successfully.");
-
+  Serial.println("SD Card read successfully.");
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("SD Card read");
+  lcd.setCursor(0, 1);
+  lcd.print("successfully");
+  delay(2000);
   //write header for data stored:
   File dataFile = SD.open("data.txt", FILE_WRITE);
   dataFile.println("Date Time Temp RelHumid Pressure Density");
   dataFile.close();
   Serial.println("Date Time Temp RelHumid Pressure Density");  
 }
+
 
 void loop() {
 
@@ -152,61 +151,48 @@ void loop() {
   int counter=0;
   int second=clock.getDateTime().second;
 
-while (counter < 8){
+while (counter < 1){
   if (second !=clock.getDateTime().second){
     sendSerial();
     sdWrite();
-    refreshLCD(counter);    
+    lcd.clear();
+    refreshLCD();    
     counter++;
     second=clock.getDateTime().second;
     }   
   }
 }
 
-void refreshLCD(int option){
 
-  switch(option){
+void refreshLCD(){
+ 
+  //shows temp in ºC
+  displayTemp(mySensor.readTempC());
+    
+  //shows pressure in hPa (millibar)
+  displayPressure(mySensor.readFloatPressure()/100.0);
 
-    case 0:
-    //shows temperature in C°    
-    displayTemp(mySensor.readTempC());
-    break;
+  //shows humidity in %
+  displayHumid(mySensor.readFloatHumidity());
     
-    case 2:
-    //shows humidity in %
-    displayHumid(mySensor.readFloatHumidity());
-    break;
-    
-    case 4:
-    //shows pressure in hPa (millibar)
-    displayPressure(mySensor.readFloatPressure()/100.0);
-    break;
-    
-    case 6:
-    //shows air density in kg/m³
-    displayAirDensity();
-    break;
-    }
+  //shows air density in g/L
+  displayAirDensity();
     
 }
 
 void displayTemp(float temp){
   //shows temperature in C°
-  if (temp>=0.0){
+    lcd.print(temp);
+    lcd.write(0xDF);
+    lcd.print("C");
+}
 
-  myLCD.clearLCD();  
-  myLCD.displayInt((int)temp);
-  myLCD.codig(18,0);
-  myLCD.adjust();
-  }
-  else {
-  //for negative temperature
-  myLCD.clearLCD();
-  myLCD.codig(19,0);  
-  myLCD.displayInt((int)(abs(temp)));
-  myLCD.codig(18,0);
-  myLCD.adjust();          
-    }  
+void displayPressure(float pressure){
+  lcd.setCursor(9,0);
+  lcd.print(pressure);
+  lcd.setCursor(13,0);
+  lcd.print("hPa");
+
 }
 
 void displayHumid(float humid){
@@ -214,43 +200,45 @@ void displayHumid(float humid){
   if (humid >=100.0){
     humid=99.0;    
     }
+    lcd.setCursor(0,1);
+    lcd.print(humid);
+    lcd.print("%");
 
-  myLCD.clearLCD(); 
-  myLCD.showColumn();
-  myLCD.codig(17,0); 
-  myLCD.codig(16,0);  
-  myLCD.displayInt((int)humid);
-  myLCD.adjust();
- 
 }
 
-void displayPressure(float pressure){
+void displayAirDensity(){ 
 
-  myLCD.clearLCD(); 
-  
-  if(pressure < 1000.0){
-    myLCD.displayFloatAuto(pressure);    
-  }
-  else
-  {
-    myLCD.displayInt((int)pressure);
-  }
-  myLCD.adjust();
-}
+// Custom superscript 3 (Cubic)
+byte cubicThree[8] = {
+  0b00110,  //   ##
+  0b00001,  //     #
+  0b00110,  //   ##
+  0b00001,  //     #
+  0b00110,  //   ##
+  0b00000,
+  0b00000,
+  0b00000
+};
 
-void displayAirDensity(){
-
-  myLCD.clearLCD(); 
-  myLCD.displayFloatAuto(airDensity());    
-  myLCD.adjust();
+  lcd.setCursor(7,1);
+  lcd.print(airDensity());
+  lcd.print("Kg/m");
+  lcd.createChar(2, cubicThree);
+  lcd.setCursor(15,1);
+  lcd.write(2);
 }
 
 void testLcd(){
-  //fills LCD (all segments on- good to test if has any 
-  //bad segment
-  myLCD.fillLCD();    
-  delay(1000);
-  myLCD.clearLCD();
+  lcd.setCursor(0, 0);
+  lcd.print("ArduMet v1.4.0");
+  lcd.setCursor(0, 1);
+  lcd.print(" by Filipecebr");
+  delay(2000);
+  for (int i = 0; i < 16; i++) {
+    lcd.scrollDisplayLeft();
+    delay(150);
+  }
+  lcd.clear();
 }
 
   /*This function calculates air density as function of Temp, Press. and Rel.Humidity
@@ -325,6 +313,9 @@ void sdWrite(){
     }
     else{
     Serial.println("Error opening data.txt");
+    lcd.clear();
+    lcd.print("Error opening");
+    lcd.print("data.txt");
     }
 }
 
