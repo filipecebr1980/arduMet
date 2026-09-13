@@ -136,6 +136,7 @@ void setup() {
   lcd.setCursor(0, 1);
   lcd.print("successfully");
   delay(2000);
+  lcd.clear();
   //write header for data stored:
   File dataFile = SD.open("data.txt", FILE_WRITE);
   dataFile.println("Date Time Temp RelHumid Pressure Density");
@@ -151,21 +152,24 @@ void loop() {
   int counter=0;
   int second=clock.getDateTime().second;
 
-while (counter < 1){
+while (counter < 8){
   if (second !=clock.getDateTime().second){
     sendSerial();
     sdWrite();
-    lcd.clear();
-    refreshLCD();    
+    if(counter<5){
+    refreshLCD();
+    }
+    else{
+    showDateTime(); 
+    }   
     counter++;
     second=clock.getDateTime().second;
     }   
   }
 }
 
-
 void refreshLCD(){
- 
+
   //shows temp in ºC
   displayTemp(mySensor.readTempC());
     
@@ -182,9 +186,11 @@ void refreshLCD(){
 
 void displayTemp(float temp){
   //shows temperature in C°
+    lcd.setCursor(0,0);
     lcd.print(temp);
     lcd.write(0xDF);
     lcd.print("C");
+    lcd.print("         ");
 }
 
 void displayPressure(float pressure){
@@ -203,6 +209,7 @@ void displayHumid(float humid){
     lcd.setCursor(0,1);
     lcd.print(humid);
     lcd.print("%");
+    lcd.print("         ");
 
 }
 
@@ -222,7 +229,7 @@ byte cubicThree[8] = {
 
   lcd.setCursor(7,1);
   lcd.print(airDensity());
-  lcd.print("Kg/m");
+  lcd.print("kg/m");
   lcd.createChar(2, cubicThree);
   lcd.setCursor(15,1);
   lcd.write(2);
@@ -232,13 +239,33 @@ void testLcd(){
   lcd.setCursor(0, 0);
   lcd.print("ArduMet v1.4.0");
   lcd.setCursor(0, 1);
-  lcd.print(" by Filipecebr");
+  lcd.print("by filipecebr1980");
   delay(2000);
   for (int i = 0; i < 16; i++) {
     lcd.scrollDisplayLeft();
     delay(150);
   }
   lcd.clear();
+}
+
+void showDateTime(){
+  rtc=clock.getDateTime();
+  lcd.setCursor(0,0);
+  lcd.print("   ");
+  lcd.print(rtc.day);
+  lcd.print("/");
+  lcd.print(rtc.month);
+  lcd.print("/");
+  lcd.print(rtc.year);
+  lcd.print("        ");
+  lcd.setCursor(0,1);
+  lcd.print("    ");
+  lcd.print(rtc.hour);
+  lcd.print(":");
+  lcd.print(rtc.minute);
+  lcd.print(":");
+  lcd.print(rtc.second);
+  lcd.print("          ");
 }
 
   /*This function calculates air density as function of Temp, Press. and Rel.Humidity
@@ -249,10 +276,10 @@ void testLcd(){
 float airDensity(){   
   double t,p,rh,p1,pv,pd,Rd,Rv,density;
 
-  //Specific gas constant for dry air: 287.058 J/(Kg.K)
+  //Specific gas constant for dry air: 287.058 J/(kg.K)
   Rd=287.058;
   
-  //Specific gas constant for water vapor 461.495 J/(Kg.K)
+  //Specific gas constant for water vapor 461.495 J/(kg.K)
   Rv=461.495;
 
   //reads temp in C°
