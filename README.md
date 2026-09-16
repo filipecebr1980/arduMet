@@ -32,8 +32,8 @@ Maintained by Filipe Brandao (budegarower@gmail.com).
 
 RELEASE NOTES:
 
-V.1.4.0 - replaced the Sunman SMS0408E2 by a generic 16 x 2 Alphanumeric LCD, main was modified
-to better display real teime measurements as well as showing time and date.
+V.1.4.0 - replaced the Sunman SMS0408E2 by a generic 16 x 2 Alphanumeric LCD, main code has been modified
+to better display real time measurements as well as showing time and date.
 
 v1.3.0 - Incorporated DS3231 RTC (real time clock) to include a timestamp for data logging. Incorporated SD Card reader for data storage.
 New schematic includes the hardware modifications to include the two new devices and the the possibility of optional use of the SMS0408E2 7 segments LCD.
