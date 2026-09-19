@@ -260,10 +260,19 @@ void showDateTime(){
   lcd.print("        ");
   lcd.setCursor(0,1);
   lcd.print("    ");
+  if(fixDateTime(rtc.hour)){
+    lcd.print("0");
+  }
   lcd.print(rtc.hour);
   lcd.print(":");
+  if(fixDateTime(rtc.minute)){
+    lcd.print("0");
+  }
   lcd.print(rtc.minute);
   lcd.print(":");
+  if(fixDateTime(rtc.second)){
+    lcd.print("0");
+  }
   lcd.print(rtc.second);
   lcd.print("          ");
 }
@@ -344,6 +353,15 @@ void sdWrite(){
     lcd.print("Error opening");
     lcd.print("data.txt");
     }
+}
+
+boolean fixDateTime(int dateTime){
+  if(dateTime<10) {
+    return(true);
+  }
+  else{
+    return(false);
+  }
 }
 
 //Gets timestamps from RTC real time clock
